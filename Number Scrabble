@@ -1,0 +1,172 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(NumberScrabbleApp());
+}
+
+class NumberScrabbleApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Number Scrabble',
+      home: GameScreen(),
+    );
+  }
+}
+
+class GameScreen extends StatefulWidget {
+  @override
+  _GameScreenState createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  List<int> availableNumbers = List.generate(9, (index) => index + 1);
+  List<int> player1Selections = [];
+  List<int> player2Selections = [];
+  bool isPlayer1Turn = true;
+  String winner = '';
+  List<String> board = List.filled(9, '');
+
+  int? selectedNumber;
+
+  void selectNumber(int number, int index) {
+    if (availableNumbers.contains(number) && board[index] == '') {
+      setState(() {
+        availableNumbers.remove(number);
+        board[index] = number.toString();
+
+        if (isPlayer1Turn) {
+          player1Selections.add(number);
+          checkForWinner(player1Selections, 'Player 1 wins!');
+        } else {
+          player2Selections.add(number);
+          checkForWinner(player2Selections, 'Player 2 wins!');
+        }
+
+        if (winner.isEmpty) {
+          isPlayer1Turn = !isPlayer1Turn; 
+        }
+
+        selectedNumber = null; 
+      });
+    }
+  }
+
+  void checkForWinner(List<int> playerSelections, String winningMessage) {
+    List<List<int>> winningCombinations = [
+      [0, 1, 2], // Horizontals
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6], // Verticals
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8], // Diagonals
+      [2, 4, 6],
+    ];
+
+    for (var combo in winningCombinations) {
+      int sum = 0;
+      bool canWin = true;
+
+      for (var index in combo) {
+        if (board[index] != '') { 
+          sum += int.parse(board[index]);
+        } else {
+          canWin = false; // 
+          break; 
+        }
+      }
+
+      if (canWin && sum == 15) {
+        winner = winningMessage;
+        break;
+      }
+    }
+
+    if (availableNumbers.isEmpty && winner.isEmpty) {
+      winner = 'Draw!';
+    }
+  }
+
+  void resetGame() {
+    setState(() {
+      availableNumbers = List.generate(9, (index) => index + 1);
+      player1Selections.clear();
+      player2Selections.clear();
+      isPlayer1Turn = true;
+      winner = '';
+      board = List.filled(9, '');
+      selectedNumber = null; 
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Number Scrabble')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Text(
+                  winner.isEmpty ? 'Turn: ${isPlayer1Turn ? 'Player 1' : 'Player 2'}' : winner,
+                  style: TextStyle(fontSize: 24),
+                ),
+                SizedBox(height: 16),
+                DropdownButton<int>(
+                  hint: Text('Select number'),
+                  value: selectedNumber,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedNumber = value;
+                    });
+                  },
+                  items: availableNumbers.map<DropdownMenuItem<int>>((int value) {
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(value.toString()),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+              itemCount: 9,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    if (selectedNumber != null) {
+                      selectNumber(selectedNumber!, index);
+                    }
+                  },
+                  child: Container(
+                    alignment: Alignment.center,
+                    margin: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                      color: Colors.white,
+                    ),
+                    child: Text(
+                      board[index],
+                      style: TextStyle(fontSize: 96, color: Colors.black),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: resetGame,
+            child: Text('Play again'),
+          ),
+        ],
+      ),
+    );
+  }
+}
